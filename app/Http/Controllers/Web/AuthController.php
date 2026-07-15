@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Http\Request; 
 use Illuminate\Support\Facades\Auth; 
 
 class AuthController extends Controller
@@ -13,7 +13,7 @@ class AuthController extends Controller
         return view('auth.login'); 
     }
 
-    public function login()
+    public function login(Request $request)
     {
 
         $credentials= $request->validate([
@@ -21,7 +21,7 @@ class AuthController extends Controller
             'password' => ['required'],
         ]); 
 
-        if(Auth::atttempt($credentials)){
+        if(Auth::attempt($credentials)){
             
             $request->session()->regenerate(); //duda
 
@@ -38,7 +38,7 @@ class AuthController extends Controller
             return redirect()->intended('dashboard'); 
         }
 
-        return back()->whitErrors([
+        return back()->withErrors([
             'email' => 'No se encontró el usuario'
         ]);
 

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('room_type', function (Blueprint $table){
             $table->id(); 
             $table->enum('type', ['single', 'double', 'double double']);
-            $table->double('price_per_night',8,2 ); 
+            $table->decimal('price_per_night', 8,2 ); 
             $table->text('description')->nullable(); 
         }); 
     }
