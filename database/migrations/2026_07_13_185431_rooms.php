@@ -18,7 +18,8 @@ return new class extends Migration
 
             $table->integer('room_number'); 
             $table->integer('room_floor'); 
-            $table->timestamps(); 
+            $table->enum('state', ['occupied','on maintenance', 'out of service', 'available'])->default('available'); 
+            $table->timestamps();
         });
     }
 

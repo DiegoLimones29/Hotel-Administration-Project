@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar Sesión - Gestión de Hotel</title>
-    <!-- Tailwind CSS para que se vea moderno de inmediato -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
 
@@ -40,11 +39,11 @@
                 @enderror
             </div>
 
-            <!-- Botón de Envío -->
+            
             <div>
                 <button type="submit" 
                     class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Ingresar al Panel
+                    Ingresar
                 </button>
             </div>
         </form>
