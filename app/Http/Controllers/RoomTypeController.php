@@ -5,15 +5,39 @@ namespace App\Http\Controllers;
 use App\Models\Room; 
 
 use Illuminate\Http\Request;
+use App\Http\Repositories\RoomTypeRepository;
+use App\Http\Requests\StoreRoomTypeRequest; 
+use App\Http\Requests\UpdateRoomTypeRequest; 
 
 class RoomTypeController extends Controller
-{
+{ 
+    protected $roomTRepository;
+
+    public function __construct(RoomTypeRepository $roomTRepository){
+
+        $this->roomTRepository= $roomTRepository; 
+    }
+
+
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        //
+      try{
+        $room_types= $this->roomTRepository->getRoomTypes(); 
+        return response()->json([
+            $room_types,
+            200
+        ]);
+
+      } 
+      catch(\Exception $e){
+        return response()->json([
+            "message" => $e->getMessage()
+        ], 500);
+      } 
     }
 
     /**
@@ -27,9 +51,22 @@ class RoomTypeController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreRoomTypeRequest $request)
     {
-        //
+        try{
+
+            $validatedData = $request->validated(); 
+
+           $room_type = $this->roomTRepository->createRoomType($validatedData); 
+           return response()->json($room_type, 201);
+
+        }
+        catch(\Exception $e){
+            return response()->json([
+                "message" => $e->getMessage()
+            ], 500);
+
+        }
     }
 
     /**
@@ -51,9 +88,15 @@ class RoomTypeController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request,  $id)
     {
-        //
+        try{
+            
+        }
+        catch(\Excpetion $e)
+        {
+
+        }
     }
 
     /**
