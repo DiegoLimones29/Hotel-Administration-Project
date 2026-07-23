@@ -7,7 +7,8 @@ use App\Models\Room;
 use Illuminate\Http\Request;
 use App\Http\Repositories\RoomTypeRepository;
 use App\Http\Requests\StoreRoomTypeRequest; 
-use App\Http\Requests\UpdateRoomTypeRequest; 
+use App\Http\Requests\UpdateRoomType; 
+
 
 class RoomTypeController extends Controller
 { 
@@ -88,14 +89,20 @@ class RoomTypeController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request,  $id)
+    public function update(UpdateRoomType $request,  $id)
     {
         try{
+            $validatedData = $request->validated(); 
+
+            $room_type = $this -> roomTRepository -> updateRoomType($request->all(), (int)$id); 
+            return response() -> json($room_type);
             
         }
-        catch(\Excpetion $e)
+        catch(\Exception $e)
         {
-
+            return response() -> json([
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 

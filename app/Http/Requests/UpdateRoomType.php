@@ -28,7 +28,7 @@ class UpdateRoomType extends FormRequest
     {
         return [
             'type' => 'required', 
-            'price_per_nigth' => 'required',
+            'price_per_night' => 'required',
             'description' => 'required'
         ];
     }

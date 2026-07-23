@@ -10,3 +10,4 @@ Route::get('/user', function (Request $request) {
 
 Route::get('/obtenerRoomTypes', [RoomTypeController::class, 'index']); 
 Route::post('/crearRoomType', [RoomTypeController::class, 'store']); 
+Route::put('/updateRoomType/{id}', [RoomTypeController::class, 'update']); 
