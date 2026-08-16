@@ -3,62 +3,83 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Room; // Importamos el modelo Room real para administrar
-use App\Models\Room_Img; 
-use App\Models\Room_Type; 
+use App\Models\Room;       
+use App\Models\Room_Img;   
+use App\Models\Room_Type;  
 
 class RoomController extends Controller
 {
     /**
-     * Listar Habitaciones (Sirve para la API Móvil y para tu Intranet Web)
+     * Listar Habitaciones (Intranet Web y API Móvil)
      */
     public function index(Request $request)
     {
-        // Traemos los tipos y las habitaciones reales de Supabase con sus estados
-        $roomTypes = Room_Type::all();
-        $rooms = Room::with('roomType')->orderBy('room_number', 'asc')->get();
-
-        // Parche seguro para la tabla fantasma de imágenes
+        // Envolvemos todo en un escudo para que la intranet NUNCA se caiga por culpa de las imágenes
         try {
+            $roomTypes = Room_Type::all();
             $roomImages = Room_Img::all(); 
+            $rooms = Room::with('roomType')->orderBy('room_number', 'asc')->get();
         } catch (\Illuminate\Database\QueryException $e) {
+            // Si alguna tabla falla o no se encuentra en Supabase, creamos listas vacías
+            // para que la vista cargue de todos modos sin dar el error 500
+            $roomTypes = Room_Type::all();
             $roomImages = collect(); 
+            $rooms = Room::with('roomType')->orderBy('room_number', 'asc')->get();
         }
 
-        // 🚀 CAMINO A: Si la petición viene de la App Móvil (API), respondemos con JSON
+        // 🚀 Camino API: Si la pide la App Móvil, le mandamos JSON puro
         if ($request->wantsJson() || $request->is('api/*')) {
             return response()->json([
                 'success' => true,
                 'room_types' => $roomTypes,
-                'rooms' => $rooms
+                'rooms' => $rooms,
+                'room_images' => $roomImages
             ], 200);
         }
 
-        // 🚀 CAMINO B: Si viene de tu navegador web (Intranet), renderizamos la vista Blade
-        // Pasamos también la variable $rooms para que puedas pintar la cuadrícula administrativa
+        // 🚀 Camino Web: Tu intranet en Blade
         return view('rooms.index', compact('roomTypes', 'roomImages', 'rooms'));
+    }
+   
+    /**
+     * Registrar nueva habitación desde la Intranet
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'room_type_id' => ['required', 'exists:room_type,id'],
+            'room_number' => ['required', 'integer', 'unique:rooms,room_number'],
+            'room_floor' => ['required', 'integer'],
+        ]);
+
+        Room::create([
+            'room_type_id' => $request->room_type_id,
+            'room_number' => $request->room_number,
+            'room_floor' => $request->room_floor,
+            'state' => 'available' 
+        ]);
+
+        return redirect()->route('rooms.index')->with('success', 'Habitación creada exitosamente en Supabase.');
     }
 
     /**
-     * Actualizar Estado de la Habitación (Exclusivo de la Intranet)
-     * Permite al recepcionista cambiar el estado de 'available' a 'on maintenance', 'occupied', etc.
+     * Mostrar la ficha de detalles de la habitación
+     */
+    public function show(string $id)
+    {
+        $room = Room::with('roomType')->findOrFail($id);
+        return view('rooms.show', compact('room'));
+    }
+
+    /**
+     * Actualizar estado operativo
      */
     public function update(Request $request, string $id)
     {
-        $request->validate([
-            'state' => ['required', 'in:available,occupied,on maintenance,out of service'],
-        ]);
-
+        $request->validate(['state' => ['required', 'in:available,occupied,on maintenance,out of service']]);
         $room = Room::findOrFail($id);
-        $room->update([
-            'state' => $request->state
-        ]);
+        $room->update(['state' => $request->state]);
 
-        // Si la petición fuera por API (caso raro), responde JSON, si no, regresa a la pantalla con éxito
-        if ($request->wantsJson()) {
-            return response()->json(['success' => true, 'message' => 'Estado actualizado.']);
-        }
-
-        return back()->with('success', 'El estado de la habitación #' . $room->room_number . ' se actualizó correctamente.');
+        return back()->with('success', 'Estado modificado correctamente.');
     }
 }

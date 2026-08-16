@@ -2,23 +2,20 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Models;
+use Illuminate\Database\Eloquent\Relations\BelongsTo; 
 
-class Room_Type extends Model
+class Room_Img extends Model
 {
-    protected $table = 'room_type';
-    
-    protected $fillable= ['type', 'price_per_night', 'description'];
+    // Cambiamos 'rooms_img' por 'rooms_imgs' (con la S de la migración)
+    protected $table = 'rooms_imgs'; 
 
-    public function rooms(): HasMany
+    protected $fillable = ['room_type_id', 'img_url'];
+
+    public $timestamps = false;
+
+    public function roomType(): BelongsTo
     {
-        return $this-> hasMany(Room::class, 'room_type_id');
+        return $this->belongsTo(Room_Type::class, 'room_type_id'); 
     }
-
-    public function images(): HasMany
-    {
-        return $this-> hasMany(Room_Img::class, 'room_type_id'); 
-    }
-
 }

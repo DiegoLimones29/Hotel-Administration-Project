@@ -24,4 +24,23 @@ Route::middleware('auth')->group(function () {
     // Tus rutas administrativas de habitaciones
     Route::get('habitaciones', [RoomController::class, 'index'])->name('rooms.index');
     Route::put('habitaciones/{id}', [RoomController::class, 'update'])->name('rooms.update');
-}); // <-- Aquí estaba la llave que faltaba por cerrar
+
+
+
+
+    Route::middleware('auth')->group(function () {
+    Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Módulo Completo de Habitaciones
+    Route::get('habitaciones', [RoomController::class, 'index'])->name('rooms.index');
+    Route::post('habitaciones', [RoomController::class, 'store'])->name('rooms.store'); // Guardar nueva
+    Route::get('habitaciones/{id}', [RoomController::class, 'show'])->name('rooms.show'); // Ver detalle
+    Route::put('habitaciones/{id}', [RoomController::class, 'update'])->name('rooms.update'); // Cambiar estado
+});
+
+
+
+
+    // <-- Aquí estaba la llave que faltaba por cerrar
+}); 
