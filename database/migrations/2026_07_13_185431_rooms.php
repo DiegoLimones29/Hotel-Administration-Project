@@ -18,7 +18,8 @@ return new class extends Migration
 
             $table->integer('room_number'); 
             $table->integer('room_floor'); 
-            $table->enum('state', ['occupied','on maintenance', 'out of service', 'available'])->default('available'); 
+            $table->enum('state', ['available', 'reserved', 'occupied', 'on maintenance', 'out of service'])
+                  ->default('available'); 
             $table->timestamps();
         });
     }
@@ -28,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        
+        Schema::dropIfExists('rooms');
     }
 };

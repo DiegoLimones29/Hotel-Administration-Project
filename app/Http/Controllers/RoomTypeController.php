@@ -28,10 +28,7 @@ class RoomTypeController extends Controller
     {
       try{
         $room_types= $this->roomTRepository->getRoomTypes(); 
-        return response()->json([
-            $room_types,
-            200
-        ]);
+        return response()->json($room_types, 200);
 
       } 
       catch(\Exception $e){
@@ -94,7 +91,7 @@ class RoomTypeController extends Controller
         try{
             $validatedData = $request->validated(); 
 
-            $room_type = $this -> roomTRepository -> updateRoomType($request->all(), (int)$id); 
+            $room_type = $this -> roomTRepository -> updateRoomType($validatedData, (int)$id); 
             return response() -> json($room_type);
             
         }

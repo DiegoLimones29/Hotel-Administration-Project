@@ -27,9 +27,10 @@ class UpdateRoomType extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => 'required', 
-            'price_per_night' => 'required',
-            'description' => 'required'
+            'type' => 'sometimes',
+            'price_per_night' => 'sometimes',
+            'capacity' => 'sometimes',
+            'description' => 'sometimes'
         ];
     }
 

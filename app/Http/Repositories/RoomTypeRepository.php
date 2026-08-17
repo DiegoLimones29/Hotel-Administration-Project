@@ -60,7 +60,7 @@ class RoomTypeRepository{
                 'price_per_night' => $data['price_per_night'],
                 'description' => $data['description']
             ]);
-            $room_type->save(); 
+            
 
             return[
                 'message' => 'Room Type successfully updated',
