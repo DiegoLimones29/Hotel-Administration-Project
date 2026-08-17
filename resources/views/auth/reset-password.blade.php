@@ -21,13 +21,23 @@
             <form id="resetForm" class="space-y-3">
                 <div>
                     <label class="text-xs uppercase tracking-wider text-stone-500 font-medium">Nueva contraseña</label>
-                    <input type="password" id="password" required minlength="6"
-                        class="mt-1 block w-full px-3 py-2 border border-stone-200 rounded-sm text-sm bg-stone-50 focus:outline-none focus:ring-1 focus:ring-stone-400 focus:bg-white">
+                    <div class="relative mt-1">
+                        <input type="password" id="password" required minlength="6"
+                            class="block w-full px-3 py-2 pr-9 border border-stone-200 rounded-sm text-sm bg-stone-50 focus:outline-none focus:ring-1 focus:ring-stone-400 focus:bg-white">
+                        <button type="button" onclick="togglePassword('password', this)" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700">
+                            <i data-lucide="eye" style="width:16px;height:16px"></i>
+                        </button>
+                    </div>
                 </div>
                 <div>
                     <label class="text-xs uppercase tracking-wider text-stone-500 font-medium">Confirmar contraseña</label>
-                    <input type="password" id="passwordConfirm" required minlength="6"
-                        class="mt-1 block w-full px-3 py-2 border border-stone-200 rounded-sm text-sm bg-stone-50 focus:outline-none focus:ring-1 focus:ring-stone-400 focus:bg-white">
+                    <div class="relative mt-1">
+                        <input type="password" id="passwordConfirm" required minlength="6"
+                            class="block w-full px-3 py-2 pr-9 border border-stone-200 rounded-sm text-sm bg-stone-50 focus:outline-none focus:ring-1 focus:ring-stone-400 focus:bg-white">
+                        <button type="button" onclick="togglePassword('passwordConfirm', this)" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700">
+                            <i data-lucide="eye" style="width:16px;height:16px"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <p id="msg" class="text-xs rounded-sm px-3 py-2 hidden"></p>
@@ -41,6 +51,16 @@
 
     <script>
         lucide.createIcons();
+
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const isHidden = input.type === 'password';
+            input.type = isHidden ? 'text' : 'password';
+            btn.innerHTML = isHidden
+                ? '<i data-lucide="eye-off" style="width:16px;height:16px"></i>'
+                : '<i data-lucide="eye" style="width:16px;height:16px"></i>';
+            lucide.createIcons();
+        }
 
         const params = new URLSearchParams(window.location.search);
         const email = params.get('email');

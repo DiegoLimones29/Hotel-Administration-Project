@@ -92,11 +92,7 @@ class CheckInOutRepository
             $checkOutDate = $data['check_out_date'];
             $todayDate = Carbon::today()->format('Y-m-d');
 
-            // Antes esto validaba contra room->state === 'available', pero ese
-            // campo se pone en 'reserved' con CUALQUIER reservación futura,
-            // aunque sea para dentro de meses. Validamos por fecha real, igual
-            // que en ReservationRepository::hasDateConflict, para no rechazar
-            // walk-ins de hoy por reservaciones que no traslapan con hoy.
+            
             $hasConflict = Reservation::where('room_id', $room->id)
                 ->where('status', '!=', 'cancelled')
                 ->where('check_in_date', '<', $checkOutDate)
@@ -111,6 +107,12 @@ class CheckInOutRepository
 
             if ($nights < 1) {
                 return ["message" => "La fecha de salida debe ser al menos un día después de hoy"];
+            }
+
+            $numGuests = $data['num_guests'] ?? 1;
+
+            if ($numGuests > $room->roomType->capacity) {
+                return ["message" => "La habitación tiene capacidad para {$room->roomType->capacity} huésped(es), no para {$numGuests}"];
             }
 
             $totalCost = $nights * $room->roomType->price_per_night;

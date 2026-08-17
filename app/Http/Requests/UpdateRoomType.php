@@ -28,8 +28,8 @@ class UpdateRoomType extends FormRequest
     {
         return [
             'type' => 'sometimes',
-            'price_per_night' => 'sometimes',
-            'capacity' => 'sometimes',
+            'price_per_night' => 'sometimes|numeric|min:0.01',
+            'capacity' => 'sometimes|integer|min:1',
             'description' => 'sometimes'
         ];
     }
