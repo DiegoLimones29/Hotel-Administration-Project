@@ -27,6 +27,7 @@ class storeRoomTypeRequest extends FormRequest
         return [
             'type' => 'required',
             'price_per_night' => 'required',
+            'capacity' => 'required',
             'description' => 'required'
         ];
     }

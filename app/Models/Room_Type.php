@@ -9,7 +9,7 @@ class Room_Type extends Model
 {
     protected $table = 'room_type';
     
-    protected $fillable= ['type', 'price_per_night', 'description'];
+    protected $fillable= ['type', 'capacity', 'price_per_night', 'description'];
 
     public function rooms(): HasMany
     {
