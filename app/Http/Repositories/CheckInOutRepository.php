@@ -91,7 +91,12 @@ class CheckInOutRepository
 
             $checkOutDate = $data['check_out_date'];
             $todayDate = Carbon::today()->format('Y-m-d');
-            
+
+            // Antes esto validaba contra room->state === 'available', pero ese
+            // campo se pone en 'reserved' con CUALQUIER reservación futura,
+            // aunque sea para dentro de meses. Validamos por fecha real, igual
+            // que en ReservationRepository::hasDateConflict, para no rechazar
+            // walk-ins de hoy por reservaciones que no traslapan con hoy.
             $hasConflict = Reservation::where('room_id', $room->id)
                 ->where('status', '!=', 'cancelled')
                 ->where('check_in_date', '<', $checkOutDate)
@@ -137,7 +142,7 @@ class CheckInOutRepository
     public function checkOut(int $reservationId, string $paymentMethod)
     {
         try {
-            $reservation = Reservation::with('room')->find($reservationId);
+            $reservation = Reservation::with('room.roomType')->find($reservationId);
 
             if (!$reservation) {
                 return ["message" => "Reservación no encontrada"];
@@ -151,13 +156,18 @@ class CheckInOutRepository
                 return ["message" => "Esta reservación ya tiene una factura generada"];
             }
 
-            
             $servicesCost = ReservationService::where('reservation_id', $reservation->id)
                 ->get()
                 ->sum(function ($rs) {
                     return $rs->quantity * $rs->unit_price;
                 });
-            $roomCost = $reservation->total_cost;
+
+            
+            $checkInDate = Carbon::parse($reservation->check_in_date);
+            $today = Carbon::today();
+            $actualNights = max($checkInDate->diffInDays($today), 1);
+            $pricePerNight = $reservation->room->roomType->price_per_night;
+            $roomCost = $actualNights * $pricePerNight;
 
             $invoice = Invoice::create([
                 'reservation_id' => $reservation->id,
@@ -171,6 +181,8 @@ class CheckInOutRepository
             $reservation->update([
                 'status' => 'completed',
                 'actual_check_out_at' => now(),
+                'num_nights' => $actualNights,
+                'total_cost' => $roomCost,
             ]);
 
             $reservation->room->update(['state' => 'available']);

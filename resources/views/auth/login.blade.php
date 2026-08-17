@@ -4,50 +4,81 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar Sesión - Gestión de Hotel</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<body class="bg-stone-50 flex items-center justify-center min-h-screen text-stone-900" style="font-family: 'Segoe UI', system-ui, sans-serif;">
 
-    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Login</h2>
-
-        <!-- Formulario de Login -->
-        <form action="{{ route('login') }}" method="POST" class="space-y-4">
-            @csrf
-
-            <!-- Campo: Correo Electrónico -->
-            <div>
-                <label for="email" class="block text-sm font-medium text-gray-700">Correo Electrónico</label>
-                <input type="email" name="email" id="email" value="{{ old('email') }}" required
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                
-                <!-- Mostrar error específico del correo -->
-                @error('email')
-                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                @enderror
+    <div class="w-full max-w-sm">
+        <div class="flex items-center gap-3 justify-center mb-6">
+            <div class="w-9 h-9 rounded-sm bg-stone-900 flex items-center justify-center">
+                <i data-lucide="hotel" class="text-white" style="width:18px;height:18px"></i>
             </div>
-
-            <!-- Campo: Contraseña -->
-            <div>
-                <label for="password" class="block text-sm font-medium text-gray-700">Contraseña</label>
-                <input type="password" name="password" id="password" required
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                
-                <!-- Mostrar error específico de la contraseña -->
-                @error('password')
-                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                @enderror
+            <div class="text-left leading-tight">
+                <p class="text-sm font-semibold tracking-tight">Sistema de Gestión Hotelera</p>
             </div>
+        </div>
 
-            
-            <div>
-                <button type="submit" 
-                    class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        <div class="bg-white border border-stone-200 rounded-md p-8">
+            <p class="text-xs uppercase tracking-wider text-stone-500 mb-5 font-medium text-center">Acceso de personal</p>
+
+            <form id="loginForm" class="space-y-3">
+                <div>
+                    <label for="email" class="text-xs uppercase tracking-wider text-stone-500 font-medium">Correo Electrónico</label>
+                    <input type="email" name="email" id="email" required
+                        class="mt-1 block w-full px-3 py-2 border border-stone-200 rounded-sm text-sm bg-stone-50 focus:outline-none focus:ring-1 focus:ring-stone-400 focus:bg-white">
+                </div>
+
+                <div>
+                    <label for="password" class="text-xs uppercase tracking-wider text-stone-500 font-medium">Contraseña</label>
+                    <input type="password" name="password" id="password" required
+                        class="mt-1 block w-full px-3 py-2 border border-stone-200 rounded-sm text-sm bg-stone-50 focus:outline-none focus:ring-1 focus:ring-stone-400 focus:bg-white">
+                </div>
+
+                <p id="errorMsg" class="text-red-700 text-xs bg-red-50 border border-red-200 rounded-sm px-3 py-2 hidden"></p>
+
+                <button type="submit"
+                    class="w-full py-2.5 rounded-sm text-sm font-medium text-white bg-red-800 hover:bg-red-900 transition">
                     Ingresar
                 </button>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
+
+    <script>
+        lucide.createIcons();
+
+        document.getElementById('loginForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.classList.add('hidden');
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    errorMsg.textContent = data.message || 'Error al iniciar sesión';
+                    errorMsg.classList.remove('hidden');
+                    return;
+                }
+
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                window.location.href = '/panel';
+            } catch (err) {
+                errorMsg.textContent = 'No se pudo conectar con el servidor';
+                errorMsg.classList.remove('hidden');
+            }
+        });
+    </script>
 
 </body>
 </html>

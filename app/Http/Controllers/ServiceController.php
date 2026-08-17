@@ -56,4 +56,15 @@ class ServiceController extends Controller
             return response()->json(["message" => $e->getMessage()], 500);
         }
     }
+
+    public function activate(string $id)
+    {
+        try {
+            $result = $this->serviceRepository->activateService((int) $id);
+            $status = isset($result['data']) ? 200 : 422;
+            return response()->json($result, $status);
+        } catch (\Exception $e) {
+            return response()->json(["message" => $e->getMessage()], 500);
+        }
+    }
 }

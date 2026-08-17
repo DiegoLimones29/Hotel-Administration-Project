@@ -64,6 +64,9 @@ class ServiceRepository
         }
     }
 
+    // "Un servicio desactivado no puede ser asignado a ningún huésped" (PDF):
+    // por eso desactivamos en vez de borrar, así se conserva el historial
+    // de servicios ya consumidos en estadías anteriores.
     public function deactivateService(int $id)
     {
         try {
@@ -77,6 +80,26 @@ class ServiceRepository
 
             return [
                 "message" => "Servicio desactivado",
+                "data" => $service
+            ];
+        } catch (Exception $e) {
+            return ["message" => $e->getMessage()];
+        }
+    }
+
+    public function activateService(int $id)
+    {
+        try {
+            $service = Service::find($id);
+
+            if (!$service) {
+                return ["message" => "Servicio no encontrado"];
+            }
+
+            $service->update(['active' => true]);
+
+            return [
+                "message" => "Servicio reactivado",
                 "data" => $service
             ];
         } catch (Exception $e) {
