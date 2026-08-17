@@ -26,15 +26,17 @@ Route::get('/rooms', [RoomController::class, 'index']);
 Route::get('/rooms/{id}', [RoomController::class, 'show']);
 Route::get('/room-types/{roomTypeId}/imagenes', [RoomTypeImageController::class, 'index']);
 Route::post('/login', [AuthController::class, 'apiLogin']);
+Route::post('/app/login', [AuthController::class, 'appLogin']);
 
-
+// Público, sin autenticación: pantalla de registro de la app móvil (Módulo 7).
 Route::post('/register', [UserController::class, 'register']);
 
 
-
+//rutas protegidas por verificacion
 Route::middleware(['auth:sanctum'])->group(function() {
 
-    
+    // Solo Administrador: catálogo de habitaciones y tipos (PDF Módulo 2),
+    // gestión de personal, y reportes (PDF Módulo 6).
     Route::middleware(['admin'])->group(function () {
         Route::post('/crearRoomType', [RoomTypeController::class, 'store']);
         Route::put('/updateRoomType/{id}', [RoomTypeController::class, 'update']);
@@ -56,8 +58,7 @@ Route::middleware(['auth:sanctum'])->group(function() {
         Route::get('/reports/export/pdf', [ReportController::class, 'exportPdf']);
     });
 
-    // Staff (admin o recep): operación diaria del hotel. Un huésped
-    // autenticado desde la app NO debe poder tocar nada de este grupo.
+    
     Route::middleware(['staff'])->group(function () {
         Route::get('/reservations', [ReservationController::class, 'index']);
         Route::put('/reservations/{id}', [ReservationController::class, 'update']);
@@ -82,7 +83,7 @@ Route::middleware(['auth:sanctum'])->group(function() {
 
     Route::post('/logout', [AuthController::class, 'apiLogout']);
 
-    
+    // Perfil propio (Módulo 11).
     Route::get('/me', [UserController::class, 'me']);
     Route::put('/me', [UserController::class, 'updateMe']);
     Route::put('/me/password', [UserController::class, 'changeMyPassword']);

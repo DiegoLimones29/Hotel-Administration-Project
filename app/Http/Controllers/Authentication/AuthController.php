@@ -68,50 +68,59 @@ class AuthController extends Controller
     }
 
     public function apiLogin(Request $request)
-{
-    $credentials = $request->validate([
-        'email' => ['required', 'email'],
-        'password' => ['required'],
-    ]);
-
-    $throttleKey = Str::lower($credentials['email']).'|'.$request->ip();
-
-    if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
-        $seconds = RateLimiter::availableIn($throttleKey);
-        return response()->json([
-            'message' => "Cuenta bloqueada temporalmente. Intenta de nuevo en {$seconds} segundos"
-        ], 429);
+    {
+        return $this->attemptLogin($request, restrictToStaff: true);
     }
 
-    $user = \App\Models\User::where('email', $credentials['email'])->first();
-
-    if (! $user || ! \Illuminate\Support\Facades\Hash::check($credentials['password'], $user->password)) {
-        RateLimiter::hit($throttleKey, 60);
-        return response()->json([
-            'message' => 'Credenciales invalidas'
-        ], 401);
+   
+    public function appLogin(Request $request)
+    {
+        return $this->attemptLogin($request, restrictToStaff: false);
     }
 
-    RateLimiter::clear($throttleKey);
+    private function attemptLogin(Request $request, bool $restrictToStaff)
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
+        ]);
 
-    if ($user->role === 'guest') {
+        $throttleKey = Str::lower($credentials['email']).'|'.$request->ip();
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            return response()->json([
+                'message' => "Cuenta bloqueada temporalmente. Intenta de nuevo en {$seconds} segundos"
+            ], 429);
+        }
+
+        $user = \App\Models\User::where('email', $credentials['email'])->first();
+
+        if (! $user || ! \Illuminate\Support\Facades\Hash::check($credentials['password'], $user->password)) {
+            RateLimiter::hit($throttleKey, 60);
+            return response()->json([
+                'message' => 'Credenciales invalidas'
+            ], 401);
+        }
+
+        RateLimiter::clear($throttleKey);
+
+        if ($restrictToStaff && $user->role === 'guest') {
+            return response()->json([
+                'message' => 'Solo personal del hotel puede acceder al panel'
+            ], 403);
+        }
+
+        $token = $user->createToken('api-token')->plainTextToken;
+
         return response()->json([
-            'message' => 'Solo personal del hotel puede acceder al panel'
-        ], 403);
+            'message' => 'Login exitoso',
+            'user' => $user,
+            'token' => $token
+        ], 200);
     }
 
-    $token = $user->createToken('api-token')->plainTextToken;
-
-    return response()->json([
-        'message' => 'Login exitoso',
-        'user' => $user,
-        'token' => $token
-    ], 200);
-}
-
-    // Cierre de sesión con invalidación real del token (PDF Módulo 1).
-    // Antes el frontend solo borraba el token de localStorage, pero el
-    // token seguía siendo válido en el servidor indefinidamente.
+    
     public function apiLogout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
@@ -121,18 +130,14 @@ class AuthController extends Controller
         ], 200);
     }
 
-    // PDF Módulo 1: "Recuperación de contraseña mediante enlace enviado al
-    // correo registrado". MAIL_MAILER=log en .env por default: el correo
-    // no se envía de verdad, se escribe en storage/logs/laravel.log — útil
-    // para demostrar el flujo sin necesitar SMTP configurado.
+    
     public function forgotPassword(Request $request)
     {
         $request->validate(['email' => 'required|email']);
 
         $user = User::where('email', $request->email)->first();
 
-        // Por seguridad, respondemos igual exista o no el correo
-        // (no revelamos si un email está registrado).
+        
         if (!$user) {
             return response()->json([
                 'message' => 'Si el correo existe, se envió un enlace de recuperación'
@@ -169,7 +174,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'Token inválido o expirado'], 400);
         }
 
-        // Expira a los 60 minutos.
+        
         if (Carbon::parse($record->created_at)->addMinutes(60)->isPast()) {
             DB::table('password_reset_tokens')->where('email', $data['email'])->delete();
             return response()->json(['message' => 'Token inválido o expirado'], 400);
@@ -190,7 +195,7 @@ class AuthController extends Controller
         
         DB::table('password_reset_tokens')->where('email', $data['email'])->delete();
 
-        // Por seguridad, invalida todos los tokens de API activos de ese usuario.
+        
         $user->tokens()->delete();
 
         return response()->json(['message' => 'Contraseña actualizada correctamente'], 200);
