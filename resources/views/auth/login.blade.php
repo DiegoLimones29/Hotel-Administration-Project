@@ -41,6 +41,26 @@
                     class="w-full py-2.5 rounded-sm text-sm font-medium text-white bg-red-800 hover:bg-red-900 transition">
                     Ingresar
                 </button>
+
+                <button type="button" id="forgotBtn" class="w-full text-center text-xs text-stone-500 hover:text-stone-800 pt-1">
+                    ¿Olvidaste tu contraseña?
+                </button>
+            </form>
+
+            <form id="forgotForm" class="space-y-3 hidden">
+                <p class="text-xs text-stone-500">Escribe tu correo y te enviaremos un enlace para restablecer tu contraseña.</p>
+                <div>
+                    <label class="text-xs uppercase tracking-wider text-stone-500 font-medium">Correo Electrónico</label>
+                    <input type="email" id="forgotEmail" required
+                        class="mt-1 block w-full px-3 py-2 border border-stone-200 rounded-sm text-sm bg-stone-50 focus:outline-none focus:ring-1 focus:ring-stone-400 focus:bg-white">
+                </div>
+                <p id="forgotMsg" class="text-xs rounded-sm px-3 py-2 hidden"></p>
+                <button type="submit" class="w-full py-2.5 rounded-sm text-sm font-medium text-white bg-stone-900 hover:bg-stone-800 transition">
+                    Enviar enlace
+                </button>
+                <button type="button" id="backToLoginBtn" class="w-full text-center text-xs text-stone-500 hover:text-stone-800">
+                    Volver a iniciar sesión
+                </button>
             </form>
         </div>
     </div>
@@ -77,6 +97,33 @@
                 errorMsg.textContent = 'No se pudo conectar con el servidor';
                 errorMsg.classList.remove('hidden');
             }
+        });
+
+        document.getElementById('forgotBtn').addEventListener('click', () => {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('forgotForm').classList.remove('hidden');
+        });
+
+        document.getElementById('backToLoginBtn').addEventListener('click', () => {
+            document.getElementById('forgotForm').classList.add('hidden');
+            document.getElementById('loginForm').classList.remove('hidden');
+        });
+
+        document.getElementById('forgotForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const forgotMsg = document.getElementById('forgotMsg');
+            const email = document.getElementById('forgotEmail').value;
+
+            const res = await fetch('/api/forgot-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            const data = await res.json();
+
+            forgotMsg.textContent = data.message;
+            forgotMsg.className = 'text-xs rounded-sm px-3 py-2 ' + (res.ok ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200');
+            forgotMsg.classList.remove('hidden');
         });
     </script>
 
