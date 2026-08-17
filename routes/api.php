@@ -28,30 +28,25 @@ Route::get('/room-types/{roomTypeId}/imagenes', [RoomTypeImageController::class,
 Route::post('/login', [AuthController::class, 'apiLogin']);
 
 
-//rutas protegidas por verificacion
+Route::post('/register', [UserController::class, 'register']);
+
+
+
 Route::middleware(['auth:sanctum'])->group(function() {
 
-    // Solo Administrador: catálogo de habitaciones y tipos (PDF Módulo 2:
-    // "Permite al Administrador registrar y administrar el catálogo de habitaciones")
+    
     Route::middleware(['admin'])->group(function () {
         Route::post('/crearRoomType', [RoomTypeController::class, 'store']);
         Route::put('/updateRoomType/{id}', [RoomTypeController::class, 'update']);
 
         Route::post('/rooms', [RoomController::class, 'store']);
         Route::put('/rooms/{id}', [RoomController::class, 'update']);
-        Route::patch('/rooms/{id}/fuera-de-servicio', [RoomController::class, 'markOutOfService']);
 
         Route::post('/room-types/{roomTypeId}/imagenes', [RoomTypeImageController::class, 'store']);
 
-        // Un huésped define su propia contraseña (vía app móvil). El staff
-        // en el panel web solo puede BUSCAR huéspedes existentes, nunca
-        // registrar una cuenta nueva con contraseña puesta por alguien más.
-        // Se deja disponible solo para admin como excepción operativa
-        // (alta manual de emergencia), no como flujo normal de recepción.
         Route::post('/guests', [UserController::class, 'storeGuest']);
         Route::post('/staff', [UserController::class, 'storeStaff']);
 
-        // Módulo 6: "Proporciona al Administrador información consolidada"
         Route::get('/reports/ocupacion', [ReportController::class, 'occupancy']);
         Route::get('/reports/ingresos', [ReportController::class, 'revenue']);
         Route::get('/reports/habitaciones-mas-solicitadas', [ReportController::class, 'mostRequestedRoomTypes']);
@@ -61,37 +56,48 @@ Route::middleware(['auth:sanctum'])->group(function() {
         Route::get('/reports/export/pdf', [ReportController::class, 'exportPdf']);
     });
 
+    // Staff (admin o recep): operación diaria del hotel. Un huésped
+    // autenticado desde la app NO debe poder tocar nada de este grupo.
+    Route::middleware(['staff'])->group(function () {
+        Route::get('/reservations', [ReservationController::class, 'index']);
+        Route::put('/reservations/{id}', [ReservationController::class, 'update']);
+        Route::patch('/reservations/{id}/confirmar', [ReservationController::class, 'confirm']);
+
+        Route::patch('/rooms/{id}/fuera-de-servicio', [RoomController::class, 'markOutOfService']);
+        Route::patch('/rooms/{id}/estado', [RoomController::class, 'updateState']);
+
+        Route::get('/checkins/hoy', [CheckInOutController::class, 'todayCheckIns']);
+        Route::get('/checkouts/hoy', [CheckInOutController::class, 'todayCheckOuts']);
+        Route::post('/checkins/walkin', [CheckInOutController::class, 'walkIn']);
+        Route::post('/checkins/{reservationId}', [CheckInOutController::class, 'checkIn']);
+        Route::post('/checkouts/{reservationId}', [CheckInOutController::class, 'checkOut']);
+
+        Route::post('/services', [ServiceController::class, 'store']);
+        Route::put('/services/{id}', [ServiceController::class, 'update']);
+        Route::patch('/services/{id}/desactivar', [ServiceController::class, 'deactivate']);
+        Route::patch('/services/{id}/activar', [ServiceController::class, 'activate']);
+
+        Route::get('/guests', [UserController::class, 'guests']);
+    });
+
     Route::post('/logout', [AuthController::class, 'apiLogout']);
 
-    Route::get('/reservations', [ReservationController::class, 'index']);
+    
+    Route::get('/me', [UserController::class, 'me']);
+    Route::put('/me', [UserController::class, 'updateMe']);
+    Route::put('/me/password', [UserController::class, 'changeMyPassword']);
+
+    
+    Route::get('/mis-reservaciones', [ReservationController::class, 'myReservations']);
     Route::get('/reservations/disponibilidad', [ReservationController::class, 'availability']);
     Route::get('/reservations/{id}', [ReservationController::class, 'show']);
     Route::post('/reservations', [ReservationController::class, 'store']);
-    Route::put('/reservations/{id}', [ReservationController::class, 'update']);
-    Route::patch('/reservations/{id}/confirmar', [ReservationController::class, 'confirm']);
     Route::patch('/reservations/{id}/cancelar', [ReservationController::class, 'cancel']);
 
-    Route::get('/checkins/hoy', [CheckInOutController::class, 'todayCheckIns']);
-    Route::get('/checkouts/hoy', [CheckInOutController::class, 'todayCheckOuts']);
-    Route::post('/checkins/walkin', [CheckInOutController::class, 'walkIn']);
-    Route::post('/checkins/{reservationId}', [CheckInOutController::class, 'checkIn']);
-    Route::post('/checkouts/{reservationId}', [CheckInOutController::class, 'checkOut']);
-
-    // Catálogo de servicios adicionales
     Route::get('/services', [ServiceController::class, 'index']);
-    Route::post('/services', [ServiceController::class, 'store']);
-    Route::put('/services/{id}', [ServiceController::class, 'update']);
-    Route::patch('/services/{id}/desactivar', [ServiceController::class, 'deactivate']);
-    Route::patch('/services/{id}/activar', [ServiceController::class, 'activate']);
 
-    // Servicios asignados a la cuenta de un huésped
     Route::post('/reservation-services', [ReservationServiceController::class, 'store']);
     Route::get('/reservations/{reservationId}/services', [ReservationServiceController::class, 'byReservation']);
     Route::patch('/reservation-services/{id}/estado', [ReservationServiceController::class, 'updateStatus']);
-
-    // Búsqueda de huéspedes desde recepción (para reservarles/check-in).
-    // El registro de cuenta nueva (POST) es admin-only — ver grupo de arriba.
-    Route::get('/guests', [UserController::class, 'guests']);
      
 });
-

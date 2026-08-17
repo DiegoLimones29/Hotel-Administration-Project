@@ -286,14 +286,14 @@
                         <th class="text-xs uppercase tracking-wider text-stone-500 font-medium">Piso</th>
                         <th class="text-xs uppercase tracking-wider text-stone-500 font-medium">Estado</th>
                         <th class="text-xs uppercase tracking-wider text-stone-500 font-medium">Precio/noche</th>
-                        <th data-role="admin" class="px-5"></th>
+                        <th class="px-5 text-xs uppercase tracking-wider text-stone-500 font-medium">Cambiar estado</th>
                     </tr></thead>
                     <tbody id="roomsTable"></tbody>
                 </table>
             </div>
         </section>
 
-        <!-- ===================== CHECK-IN / CHECK-OUT ===================== -->
+       
         <section id="tab-checkinout" class="tab-content hidden space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="bg-white border border-stone-200 rounded-md p-5">
@@ -952,7 +952,7 @@
                     <td><span class="inline-flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full ${dotMap[r.state] || 'bg-stone-400'}"></span>${r.state}</span></td>
                     <td>$${r.room_type?.price_per_night ?? ''}</td>
                     <td class="px-5">
-                        ${isAdmin && r.state !== 'out of service' ? `<button onclick="markOutOfService(${r.id})" class="text-red-700 text-xs hover:underline">Fuera de servicio</button>` : ''}
+                        ${roomStateSelector(r)}
                     </td>
                 </tr>
             `).join('') || `<tr><td class="px-5 py-4 text-stone-400 text-sm" colspan="6">Sin resultados</td></tr>`;
@@ -969,8 +969,21 @@
         });
         document.getElementById('roomFilterState')?.addEventListener('change', loadRooms);
 
-        async function markOutOfService(id) {
-            const res = await api(`/rooms/${id}/fuera-de-servicio`, { method: 'PATCH' });
+        // Ciclo permitido: available ⇄ on maintenance ⇄ out of service.
+        // 'occupied'/'reserved' los pone el sistema solo, no se editan a mano.
+        function roomStateSelector(r) {
+            if (r.state === 'occupied' || r.state === 'reserved') {
+                return '<span class="text-xs text-stone-400">Gestionado por reservación/check-in</span>';
+            }
+            const labels = { available: 'Disponible', 'on maintenance': 'Mantenimiento', 'out of service': 'Fuera de servicio' };
+            const options = Object.keys(labels).map(state =>
+                `<option value="${state}" ${state === r.state ? 'selected' : ''}>${labels[state]}</option>`
+            ).join('');
+            return `<select onchange="changeRoomState(${r.id}, this.value)" class="border border-stone-200 rounded-sm text-xs px-2 py-1 bg-white">${options}</select>`;
+        }
+
+        async function changeRoomState(id, newState) {
+            const res = await api(`/rooms/${id}/estado`, { method: 'PATCH', body: JSON.stringify({ state: newState }) });
             showMsg(res.data.message, res.ok);
             loadRooms();
         }
@@ -1002,7 +1015,7 @@
             if (res.ok) { form.reset(); loadRoomImages(roomTypeId); }
         });
 
-        // ---------- CHECK-IN / CHECK-OUT ----------
+        
         async function loadTodayCheckIns() {
             const res = await api('/checkins/hoy');
             const list = res?.data?.data ?? [];
@@ -1014,8 +1027,7 @@
             `).join('') || '<p class="text-stone-400 text-sm">Sin check-ins pendientes hoy</p>';
         }
 
-        // Mismo cálculo que hace el backend en checkOut(): noches reales
-        // (desde check_in hasta hoy) por precio/noche, más servicios consumidos.
+        
         async function estimateCheckoutTotal(r) {
             const checkIn = new Date(r.check_in_date);
             const today = new Date();
@@ -1085,8 +1097,7 @@
             const list = res?.data?.data ?? [];
             const today = new Date().toISOString().slice(0, 10);
 
-            // Las que ya salen hoy se manejan en "Check-outs de hoy" arriba;
-            // aquí mostramos las que aún no llegan a su fecha programada.
+            
             const early = list.filter(r => (r.check_out_date ?? '').slice(0, 10) !== today);
             const withEstimates = await Promise.all(early.map(async r => ({ r, est: await estimateCheckoutTotal(r) })));
 
@@ -1133,7 +1144,7 @@
             }
         });
 
-        // ---------- SERVICIOS ----------
+        
         async function loadServices() {
             const res = await api('/services');
             const list = res?.data?.data ?? [];
@@ -1183,7 +1194,7 @@
             if (res.ok) e.target.reset();
         });
 
-        // ---------- ESTADÍAS ACTIVAS (para asignar servicios) ----------
+       
         let activeStaysCache = [];
 
         async function loadActiveStays() {
@@ -1250,7 +1261,7 @@
             renderActiveStays(filtered);
         });
 
-        // ---------- HUÉSPEDES ----------
+       
         async function loadGuests() {
             const search = document.getElementById('guestSearch')?.value ?? '';
             const query = search ? `?search=${encodeURIComponent(search)}` : '';
@@ -1288,7 +1299,7 @@
             if (res.ok) e.target.reset();
         });
 
-        // ---------- REPORTES ----------
+        
         function initReportsTab() {
             const today = new Date().toISOString().slice(0, 10);
             const startInput = document.getElementById('reportStartDate');
@@ -1428,7 +1439,6 @@
             const params = reportParams();
             params.set('type', type);
             const url = `/api/reports/export/${format}?${params.toString()}`;
-            // Descarga autenticada: fetch + blob, ya que un <a href> normal no manda el Bearer token.
             fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
                 .then(async res => {
                     if (!res.ok) {
@@ -1446,7 +1456,7 @@
                 .catch(() => showMsg('No se pudo exportar el reporte', false));
         }
 
-        // ---------- INIT ----------
+        
         loadDashboard();
     </script>
 

@@ -106,4 +106,53 @@ class RoomRepository{
         }
     }
 
+   
+    private const MANUAL_STATES = ['available', 'on maintenance', 'out of service'];
+
+    public function updateRoomState(int $id, string $newState)
+    {
+        try {
+            if (!in_array($newState, self::MANUAL_STATES)) {
+                return ["message" => "Estado no válido para asignación manual"];
+            }
+
+            $room = Room::find($id);
+
+            if (!$room) {
+                return ["message" => "Habitación no encontrada"];
+            }
+
+            // Si está ocupada o reservada por el flujo normal del sistema,
+            // no se puede reasignar a mano: debe salir por check-out o
+            // cancelación primero.
+            if (in_array($room->state, ['occupied', 'reserved'])) {
+                return [
+                    "message" => "No se puede cambiar el estado a mano mientras está ocupada o reservada. Realiza el check-out o cancela la reservación primero."
+                ];
+            }
+
+            
+            if ($newState === 'available') {
+                $hasActiveReservation = \App\Models\Reservation::where('room_id', $room->id)
+                    ->whereIn('status', ['confirmed', 'in_progress'])
+                    ->exists();
+
+                if ($hasActiveReservation) {
+                    return [
+                        "message" => "No se puede marcar disponible: tiene una reservación confirmada o en curso"
+                    ];
+                }
+            }
+
+            $room->update(['state' => $newState]);
+
+            return [
+                "message" => "Estado de la habitación actualizado",
+                "data" => $room->load('roomType')
+            ];
+        } catch (\Exception $e) {
+            return ["message" => $e->getMessage()];
+        }
+    }
+
 }

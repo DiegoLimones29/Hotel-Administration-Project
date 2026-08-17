@@ -25,6 +25,7 @@ class RoomTypeRepository{
         try{
             $room_type= Room_Type::create([
             "type" => $data['type'],
+            "capacity" => $data['capacity'],
             "price_per_night" => $data['price_per_night'],
             "description" => $data['description']
             ]);
@@ -56,9 +57,10 @@ class RoomTypeRepository{
             }
 
             $room_type->update([
-                "type" => $data['type'],
-                'price_per_night' => $data['price_per_night'],
-                'description' => $data['description']
+                "type" => $data['type'] ?? $room_type->type,
+                "capacity" => $data['capacity'] ?? $room_type->capacity,
+                'price_per_night' => $data['price_per_night'] ?? $room_type->price_per_night,
+                'description' => $data['description'] ?? $room_type->description
             ]);
             
 

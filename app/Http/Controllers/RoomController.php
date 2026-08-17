@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Repositories\RoomRepository;
 use App\Http\Requests\RoomRequests\StoreRoomRequest;
 use App\Http\Requests\RoomRequests\UpdateRoomRequest;
+use App\Http\Requests\RoomRequests\UpdateRoomStateRequest;
 
 class RoomController extends Controller
 {
@@ -60,6 +61,18 @@ class RoomController extends Controller
         try {
             $room = $this->roomRepository->markOutOfService((int) $id);
             return response()->json($room, 200);
+        } catch (\Exception $e) {
+            return response()->json(["message" => $e->getMessage()], 500);
+        }
+    }
+
+    public function updateState(UpdateRoomStateRequest $request, string $id)
+    {
+        try {
+            $data = $request->validated();
+            $result = $this->roomRepository->updateRoomState((int) $id, $data['state']);
+            $status = isset($result['data']) ? 200 : 422;
+            return response()->json($result, $status);
         } catch (\Exception $e) {
             return response()->json(["message" => $e->getMessage()], 500);
         }

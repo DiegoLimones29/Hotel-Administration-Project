@@ -31,8 +31,13 @@
 
                 <div>
                     <label for="password" class="text-xs uppercase tracking-wider text-stone-500 font-medium">Contraseña</label>
-                    <input type="password" name="password" id="password" required
-                        class="mt-1 block w-full px-3 py-2 border border-stone-200 rounded-sm text-sm bg-stone-50 focus:outline-none focus:ring-1 focus:ring-stone-400 focus:bg-white">
+                    <div class="relative mt-1">
+                        <input type="password" name="password" id="password" required
+                            class="block w-full px-3 py-2 pr-9 border border-stone-200 rounded-sm text-sm bg-stone-50 focus:outline-none focus:ring-1 focus:ring-stone-400 focus:bg-white">
+                        <button type="button" onclick="togglePassword('password', this)" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700">
+                            <i data-lucide="eye" style="width:16px;height:16px"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <p id="errorMsg" class="text-red-700 text-xs bg-red-50 border border-red-200 rounded-sm px-3 py-2 hidden"></p>
@@ -67,6 +72,16 @@
 
     <script>
         lucide.createIcons();
+
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const isHidden = input.type === 'password';
+            input.type = isHidden ? 'text' : 'password';
+            btn.innerHTML = isHidden
+                ? '<i data-lucide="eye-off" style="width:16px;height:16px"></i>'
+                : '<i data-lucide="eye" style="width:16px;height:16px"></i>';
+            lucide.createIcons();
+        }
 
         document.getElementById('loginForm').addEventListener('submit', async function (e) {
             e.preventDefault();

@@ -23,9 +23,15 @@ class ReservationController extends Controller
         return response()->json($this->reservationRepository->getReservations($filters), 200);
     }
 
-    public function show(string $id)
+    public function show(Request $request, string $id)
     {
-        return response()->json($this->reservationRepository->show((int) $id), 200);
+        $result = $this->reservationRepository->show((int) $id);
+
+        if (isset($result['data']) && $request->user()->role === 'guest' && $result['data']->user_id !== $request->user()->id) {
+            return response()->json(["message" => "No puedes ver una reservación que no es tuya"], 403);
+        }
+
+        return response()->json($result, isset($result['data']) ? 200 : 404);
     }
 
     public function availability(Request $request)
@@ -47,12 +53,28 @@ class ReservationController extends Controller
     {
         try {
             $data = $request->validated();
+
+            // Seguridad: un huésped desde la app solo puede reservar a su
+            // propio nombre, sin importar qué user_id mande el cliente.
+            // El staff (admin/recep) sí puede reservar a nombre de cualquier
+            // huésped, como hasta ahora.
+            if ($request->user()->role === 'guest') {
+                $data['user_id'] = $request->user()->id;
+            }
+
             $result = $this->reservationRepository->createReservation($data);
             $status = isset($result['data']) ? 201 : 422;
             return response()->json($result, $status);
         } catch (\Exception $e) {
             return response()->json(["message" => $e->getMessage()], 500);
         }
+    }
+
+    public function myReservations(Request $request)
+    {
+        $filters = $request->only(['status']);
+        $filters['user_id'] = $request->user()->id;
+        return response()->json($this->reservationRepository->getReservations($filters), 200);
     }
 
     public function update(UpdateReservationRequest $request, string $id)
@@ -82,6 +104,14 @@ class ReservationController extends Controller
     {
         try {
             $data = $request->validated();
+
+            if ($request->user()->role === 'guest') {
+                $reservation = \App\Models\Reservation::find((int) $id);
+                if (!$reservation || $reservation->user_id !== $request->user()->id) {
+                    return response()->json(["message" => "No puedes cancelar una reservación que no es tuya"], 403);
+                }
+            }
+
             $result = $this->reservationRepository->cancelReservation((int) $id, $data['cancellation_reason']);
             $status = isset($result['data']) ? 200 : 422;
             return response()->json($result, $status);
