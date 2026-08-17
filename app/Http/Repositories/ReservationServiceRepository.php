@@ -10,7 +10,7 @@ use Exception;
 
 class ReservationServiceRepository
 {
-    public function assignService(array $data)
+    public function assignService(array $data, ?int $requestingUserId = null, bool $isStaff = false)
     {
         try {
             $reservation = Reservation::find($data['reservation_id']);
@@ -19,6 +19,12 @@ class ReservationServiceRepository
                 return ["message" => "Reservación no encontrada"];
             }
 
+            
+            if (!$isStaff && $reservation->user_id !== $requestingUserId) {
+                return ["message" => "No puedes agregar servicios a una reservación que no es tuya"];
+            }
+
+            
             if ($reservation->status !== 'in_progress') {
                 return ["message" => "Solo se pueden agregar servicios a huéspedes con check-in activo"];
             }
@@ -29,6 +35,7 @@ class ReservationServiceRepository
                 return ["message" => "Servicio no encontrado"];
             }
 
+            
             if (!$service->active) {
                 return ["message" => "Este servicio está desactivado y no puede asignarse"];
             }
@@ -51,13 +58,17 @@ class ReservationServiceRepository
         }
     }
 
-    public function getByReservation(int $reservationId)
+    public function getByReservation(int $reservationId, ?int $requestingUserId = null, bool $isStaff = false)
     {
         try {
             $reservation = Reservation::find($reservationId);
 
             if (!$reservation) {
                 return ["message" => "Reservación no encontrada"];
+            }
+
+            if (!$isStaff && $reservation->user_id !== $requestingUserId) {
+                return ["message" => "No puedes ver los servicios de una reservación que no es tuya"];
             }
 
             $services = ReservationService::with('service')

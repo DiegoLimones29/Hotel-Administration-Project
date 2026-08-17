@@ -68,4 +68,54 @@ class UserRepository
             return ["message" => $e->getMessage()];
         }
     }
+
+    public function updateProfile(int $userId, array $data)
+    {
+        try {
+            $user = User::find($userId);
+
+            if (!$user) {
+                return ["message" => "Usuario no encontrado"];
+            }
+
+            $user->update([
+                'name' => $data['name'] ?? $user->name,
+                'phone' => $data['phone'] ?? $user->phone,
+            ]);
+
+            return [
+                "message" => "Perfil actualizado",
+                "data" => $user
+            ];
+        } catch (Exception $e) {
+            return ["message" => $e->getMessage()];
+        }
+    }
+
+    public function changePassword(int $userId, string $currentPassword, string $newPassword)
+    {
+        try {
+            $user = User::find($userId);
+
+            if (!$user) {
+                return ["message" => "Usuario no encontrado"];
+            }
+
+            if (!Hash::check($currentPassword, $user->password)) {
+                return ["message" => "La contraseña actual no es correcta"];
+            }
+
+            $user->update(['password' => Hash::make($newPassword)]);
+
+            
+            $user->tokens()->delete();
+
+            return [
+                "message" => "Contraseña actualizada",
+                "success" => true
+            ];
+        } catch (Exception $e) {
+            return ["message" => $e->getMessage()];
+        }
+    }
 }

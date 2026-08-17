@@ -32,6 +32,10 @@ class ReservationRepository
                 $query->where('status', $filters['status']);
             }
 
+            if (!empty($filters['user_id'])) {
+                $query->where('user_id', $filters['user_id']);
+            }
+
             return [
                 "message" => "Reservaciones obtenidas",
                 "data" => $query->orderByDesc('created_at')->get()

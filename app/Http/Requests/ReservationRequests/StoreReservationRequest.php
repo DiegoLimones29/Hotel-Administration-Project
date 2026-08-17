@@ -17,7 +17,7 @@ class StoreReservationRequest extends FormRequest
     {
         return [
             'room_id'         => 'required|exists:rooms,id',
-            'user_id'         => 'required|exists:users,id',
+            'user_id'         => 'sometimes|exists:users,id',
             'check_in_date'   => 'required|date|after_or_equal:today',
             'check_out_date'  => 'required|date|after:check_in_date',
             'num_guests'      => 'sometimes|integer|min:1',

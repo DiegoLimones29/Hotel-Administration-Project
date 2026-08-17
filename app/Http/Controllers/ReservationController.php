@@ -54,12 +54,14 @@ class ReservationController extends Controller
         try {
             $data = $request->validated();
 
-            // Seguridad: un huésped desde la app solo puede reservar a su
-            // propio nombre, sin importar qué user_id mande el cliente.
-            // El staff (admin/recep) sí puede reservar a nombre de cualquier
-            // huésped, como hasta ahora.
+            
             if ($request->user()->role === 'guest') {
                 $data['user_id'] = $request->user()->id;
+            } elseif (empty($data['user_id'])) {
+                
+                return response()->json([
+                    "message" => "El huésped es requerido (rol detectado en tu sesión: {$request->user()->role})"
+                ], 422);
             }
 
             $result = $this->reservationRepository->createReservation($data);
