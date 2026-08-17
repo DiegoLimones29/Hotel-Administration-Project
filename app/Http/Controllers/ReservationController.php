@@ -67,6 +67,17 @@ class ReservationController extends Controller
         }
     }
 
+    public function confirm(string $id)
+    {
+        try {
+            $result = $this->reservationRepository->confirmReservation((int) $id);
+            $status = isset($result['data']) ? 200 : 422;
+            return response()->json($result, $status);
+        } catch (\Exception $e) {
+            return response()->json(["message" => $e->getMessage()], 500);
+        }
+    }
+
     public function cancel(CancelReservationRequest $request, string $id)
     {
         try {

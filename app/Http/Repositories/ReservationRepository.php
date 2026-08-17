@@ -184,6 +184,30 @@ class ReservationRepository
         }
     }
 
+    public function confirmReservation(int $id)
+    {
+        try {
+            $reservation = Reservation::find($id);
+
+            if (!$reservation) {
+                return ["message" => "Reservación no encontrada"];
+            }
+
+            if ($reservation->status !== 'pending') {
+                return ["message" => "Solo se pueden confirmar reservaciones pendientes"];
+            }
+
+            $reservation->update(['status' => 'confirmed']);
+
+            return [
+                "message" => "Reservación confirmada",
+                "data" => $reservation->load(['room.roomType', 'guest'])
+            ];
+        } catch (Exception $e) {
+            return ["message" => $e->getMessage()];
+        }
+    }
+
     public function cancelReservation(int $id, ?string $reason = null)
     {
         try {

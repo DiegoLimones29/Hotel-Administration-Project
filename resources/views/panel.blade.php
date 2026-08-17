@@ -56,6 +56,7 @@
             <button class="nav-link" data-tab="checkinout">Check-in / Check-out</button>
             <button class="nav-link" data-tab="services">Servicios</button>
             <button class="nav-link" data-tab="guests">Huéspedes</button>
+            <button class="nav-link" data-tab="reports" data-role="admin">Reportes</button>
         </div>
     </header>
 
@@ -139,6 +140,35 @@
                             </div>
                             <div class="flex items-end">
                                 <button class="btn-primary rounded-sm px-4 py-2 text-sm font-medium w-full">Reservar</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Editar reservación (PDF: solo si no ha iniciado el check-in) -->
+                    <div id="editReservationWrap" class="hidden border-t border-stone-100 px-5 py-4 bg-stone-50">
+                        <p class="text-xs uppercase tracking-wider text-stone-500 mb-3 font-medium">Editar reservación</p>
+                        <form id="formEditReservation" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            <input type="hidden" id="editReservationId">
+                            <div>
+                                <label class="field-label">ID de habitación</label>
+                                <input id="editRoomId" type="number" required class="w-full border border-stone-200 rounded-sm px-3 py-2 text-sm bg-white">
+                            </div>
+                            <div>
+                                <label class="field-label">Número de huéspedes</label>
+                                <input id="editNumGuests" type="number" min="1" class="w-full border border-stone-200 rounded-sm px-3 py-2 text-sm bg-white">
+                            </div>
+                            <div></div>
+                            <div>
+                                <label class="field-label">Fecha de entrada</label>
+                                <input id="editCheckIn" type="date" required class="w-full border border-stone-200 rounded-sm px-3 py-2 text-sm bg-white">
+                            </div>
+                            <div>
+                                <label class="field-label">Fecha de salida</label>
+                                <input id="editCheckOut" type="date" required class="w-full border border-stone-200 rounded-sm px-3 py-2 text-sm bg-white">
+                            </div>
+                            <div class="flex items-end gap-2">
+                                <button class="btn-primary rounded-sm px-4 py-2 text-sm font-medium flex-1">Guardar cambios</button>
+                                <button type="button" id="cancelEditReservation" class="border border-stone-300 rounded-sm px-3 py-2 text-sm text-stone-600">Cancelar</button>
                             </div>
                         </form>
                     </div>
@@ -231,9 +261,23 @@
             </div>
 
             <div class="bg-white border border-stone-200 rounded-md">
-                <div class="flex justify-between items-center px-5 pt-4 pb-2">
+                <div class="flex justify-between items-center px-5 pt-4 pb-2 flex-wrap gap-2">
                     <p class="text-xs uppercase tracking-wider text-stone-500 font-medium">Estado de habitaciones</p>
-                    <button onclick="loadRooms()" class="text-xs text-stone-500 hover:text-stone-900">Refrescar</button>
+                    <div class="flex items-center gap-2">
+                        <select id="roomFilterType" class="border border-stone-200 rounded-sm px-2 py-1 text-xs bg-stone-50">
+                            <option value="">Todos los tipos</option>
+                        </select>
+                        <input id="roomFilterFloor" type="number" placeholder="Piso" class="border border-stone-200 rounded-sm px-2 py-1 text-xs bg-stone-50 w-20">
+                        <select id="roomFilterState" class="border border-stone-200 rounded-sm px-2 py-1 text-xs bg-stone-50">
+                            <option value="">Todos los estados</option>
+                            <option value="available">Disponible</option>
+                            <option value="reserved">Reservada</option>
+                            <option value="occupied">Ocupada</option>
+                            <option value="out of service">Fuera de servicio</option>
+                            <option value="on maintenance">Mantenimiento</option>
+                        </select>
+                        <button onclick="loadRooms()" class="text-xs text-stone-500 hover:text-stone-900">Refrescar</button>
+                    </div>
                 </div>
                 <table class="w-full text-sm">
                     <thead><tr class="text-left border-b border-stone-100">
@@ -273,6 +317,7 @@
                     <p class="text-xs uppercase tracking-wider text-stone-500 font-medium">Estadías activas (check-out anticipado)</p>
                     <button onclick="loadActiveStaysCheckout()" class="text-xs text-stone-500 hover:text-stone-900">Refrescar</button>
                 </div>
+                <p class="text-xs text-stone-400 mb-3">Incluye estadías con check-in ya realizado cuya fecha de salida programada aún no llega. Al hacer check-out aquí solo se cobran las noches realmente hospedadas.</p>
                 <div id="activeStaysCheckoutList" class="space-y-2 text-sm"></div>
             </div>
 
@@ -395,6 +440,10 @@
                     </tr></thead>
                     <tbody id="activeStaysTable"></tbody>
                 </table>
+                <div id="reservationServicesPanel" class="hidden border-t border-stone-100 px-5 py-4 bg-stone-50">
+                    <p class="text-xs uppercase tracking-wider text-stone-500 mb-2 font-medium">Servicios de esta estadía</p>
+                    <div id="reservationServicesList" class="space-y-2 text-sm"></div>
+                </div>
             </div>
         </section>
 
@@ -469,6 +518,125 @@
             </div>
         </section>
 
+        <!-- ===================== REPORTES (admin-only) ===================== -->
+        <section id="tab-reports" class="tab-content hidden space-y-6" data-role="admin">
+
+            <div class="bg-white border border-stone-200 rounded-md p-5">
+                <p class="text-xs uppercase tracking-wider text-stone-500 mb-3 font-medium">Resumen del día</p>
+                <div id="dailySummaryWidget" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
+            </div>
+
+            <div class="bg-white border border-stone-200 rounded-md p-5">
+                <div class="flex flex-wrap items-end gap-3 mb-4">
+                    <div>
+                        <label class="field-label">Desde</label>
+                        <input id="reportStartDate" type="date" class="border border-stone-200 rounded-sm px-3 py-2 text-sm bg-stone-50">
+                    </div>
+                    <div>
+                        <label class="field-label">Hasta</label>
+                        <input id="reportEndDate" type="date" class="border border-stone-200 rounded-sm px-3 py-2 text-sm bg-stone-50">
+                    </div>
+                    <div>
+                        <label class="field-label">Tipo de habitación (opcional)</label>
+                        <select id="reportRoomTypeFilter" class="border border-stone-200 rounded-sm px-3 py-2 text-sm bg-stone-50">
+                            <option value="">Todos los tipos</option>
+                        </select>
+                    </div>
+                    <button onclick="runReports()" class="btn-primary rounded-sm px-4 py-2 text-sm font-medium">Generar reportes</button>
+                </div>
+
+                <div class="flex gap-1 border-b border-stone-100">
+                    <button class="flat-tab active" data-report-tab="ocupacion">Ocupación</button>
+                    <button class="flat-tab" data-report-tab="ingresos">Ingresos</button>
+                    <button class="flat-tab" data-report-tab="habitaciones">Habitaciones más solicitadas</button>
+                    <button class="flat-tab" data-report-tab="huespedes">Huéspedes frecuentes</button>
+                </div>
+
+                <!-- Ocupación -->
+                <div id="report-ocupacion" class="report-panel py-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <p class="text-xs text-stone-500">Ocupación promedio del período: <span id="occupancyAverage" class="font-semibold text-stone-900">—</span></p>
+                        <div class="space-x-3">
+                            <button onclick="exportReport('csv','ocupacion')" class="text-xs text-stone-500 hover:text-stone-900">Exportar CSV</button>
+                            <button onclick="exportReport('pdf','ocupacion')" class="text-xs text-stone-500 hover:text-stone-900">Exportar PDF</button>
+                        </div>
+                    </div>
+                    <table class="w-full text-sm">
+                        <thead><tr class="text-left border-b border-stone-100">
+                            <th class="py-2 text-xs uppercase tracking-wider text-stone-500 font-medium">Fecha</th>
+                            <th class="text-xs uppercase tracking-wider text-stone-500 font-medium">Ocupadas</th>
+                            <th class="text-xs uppercase tracking-wider text-stone-500 font-medium">Total</th>
+                            <th class="text-xs uppercase tracking-wider text-stone-500 font-medium">Ocupación %</th>
+                        </tr></thead>
+                        <tbody id="occupancyTable"></tbody>
+                    </table>
+                </div>
+
+                <!-- Ingresos -->
+                <div id="report-ingresos" class="report-panel py-4 hidden">
+                    <div class="grid grid-cols-3 gap-4 mb-4">
+                        <div class="border border-stone-200 rounded-md p-3">
+                            <p class="text-xs uppercase tracking-wider text-stone-500">Ingreso por habitaciones</p>
+                            <p class="text-lg font-semibold" id="revenueRoomTotal">—</p>
+                        </div>
+                        <div class="border border-stone-200 rounded-md p-3">
+                            <p class="text-xs uppercase tracking-wider text-stone-500">Ingreso por servicios</p>
+                            <p class="text-lg font-semibold" id="revenueServicesTotal">—</p>
+                        </div>
+                        <div class="border border-stone-200 rounded-md p-3">
+                            <p class="text-xs uppercase tracking-wider text-stone-500">Total facturado</p>
+                            <p class="text-lg font-semibold" id="revenueGrandTotal">—</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3 mb-3">
+                        <button onclick="exportReport('csv','ingresos')" class="text-xs text-stone-500 hover:text-stone-900">Exportar CSV</button>
+                        <button onclick="exportReport('pdf','ingresos')" class="text-xs text-stone-500 hover:text-stone-900">Exportar PDF</button>
+                    </div>
+                    <table class="w-full text-sm">
+                        <thead><tr class="text-left border-b border-stone-100">
+                            <th class="py-2 text-xs uppercase tracking-wider text-stone-500 font-medium">Factura</th>
+                            <th class="text-xs uppercase tracking-wider text-stone-500 font-medium">Huésped</th>
+                            <th class="text-xs uppercase tracking-wider text-stone-500 font-medium">Habitación</th>
+                            <th class="text-xs uppercase tracking-wider text-stone-500 font-medium">Total</th>
+                            <th class="text-xs uppercase tracking-wider text-stone-500 font-medium">Fecha</th>
+                        </tr></thead>
+                        <tbody id="revenueTable"></tbody>
+                    </table>
+                </div>
+
+                <!-- Habitaciones más solicitadas -->
+                <div id="report-habitaciones" class="report-panel py-4 hidden">
+                    <div class="flex justify-end space-x-3 mb-3">
+                        <button onclick="exportReport('csv','habitaciones')" class="text-xs text-stone-500 hover:text-stone-900">Exportar CSV</button>
+                        <button onclick="exportReport('pdf','habitaciones')" class="text-xs text-stone-500 hover:text-stone-900">Exportar PDF</button>
+                    </div>
+                    <table class="w-full text-sm">
+                        <thead><tr class="text-left border-b border-stone-100">
+                            <th class="py-2 text-xs uppercase tracking-wider text-stone-500 font-medium">Tipo de habitación</th>
+                            <th class="text-xs uppercase tracking-wider text-stone-500 font-medium">Reservaciones</th>
+                        </tr></thead>
+                        <tbody id="mostRequestedTable"></tbody>
+                    </table>
+                </div>
+
+                <!-- Huéspedes frecuentes -->
+                <div id="report-huespedes" class="report-panel py-4 hidden">
+                    <div class="flex justify-end space-x-3 mb-3">
+                        <button onclick="exportReport('csv','huespedes')" class="text-xs text-stone-500 hover:text-stone-900">Exportar CSV</button>
+                        <button onclick="exportReport('pdf','huespedes')" class="text-xs text-stone-500 hover:text-stone-900">Exportar PDF</button>
+                    </div>
+                    <table class="w-full text-sm">
+                        <thead><tr class="text-left border-b border-stone-100">
+                            <th class="py-2 text-xs uppercase tracking-wider text-stone-500 font-medium">Huésped</th>
+                            <th class="text-xs uppercase tracking-wider text-stone-500 font-medium">Correo</th>
+                            <th class="text-xs uppercase tracking-wider text-stone-500 font-medium">Estadías</th>
+                        </tr></thead>
+                        <tbody id="frequentGuestsTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
     </div>
 
     <script>
@@ -487,7 +655,14 @@
             document.querySelectorAll('[data-role="admin"]').forEach(el => el.remove());
         }
 
-        function logout() {
+        async function logout() {
+            try {
+                await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` }
+                });
+            } catch (e) { /* si falla la red, igual limpiamos localmente */ }
+
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = '/login';
@@ -538,6 +713,7 @@
             if (tab === 'checkinout') { loadTodayCheckIns(); loadTodayCheckOuts(); loadActiveStaysCheckout(); }
             if (tab === 'services') { loadServices(); loadActiveStays(); }
             if (tab === 'guests') loadGuests();
+            if (tab === 'reports') initReportsTab();
         }
         document.querySelectorAll('.nav-link').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 
@@ -643,12 +819,59 @@
                     <td class="text-xs text-stone-500">${r.check_in_date} → ${r.check_out_date}</td>
                     <td>${badge(r.status)}</td>
                     <td class="px-5 space-x-2 whitespace-nowrap">
+                        ${r.status === 'pending' ? `<button onclick="confirmReservation(${r.id})" class="text-emerald-700 text-xs hover:underline">Confirmar</button>` : ''}
+                        ${!['completed', 'cancelled', 'in_progress'].includes(r.status) ? `<button onclick="openEditReservation(${r.id})" class="text-stone-600 text-xs hover:underline">Editar</button>` : ''}
                         ${!['completed', 'cancelled', 'in_progress'].includes(r.status) ? `<button onclick="cancelReservation(${r.id})" class="text-red-700 text-xs hover:underline">Cancelar</button>` : ''}
                         <button onclick="switchTab('checkinout')" class="text-stone-500 text-xs hover:underline">Detalles</button>
                     </td>
                 </tr>
             `).join('') || `<tr><td class="px-5 py-4 text-stone-400 text-sm" colspan="6">Sin resultados</td></tr>`;
+
+            reservationsCache = list;
         }
+
+        async function confirmReservation(id) {
+            const res = await api(`/reservations/${id}/confirmar`, { method: 'PATCH' });
+            showMsg(res.data.message, res.ok);
+            loadReservationsTable();
+        }
+
+        let reservationsCache = [];
+
+        function openEditReservation(id) {
+            const r = reservationsCache.find(x => x.id === id);
+            if (!r) return;
+
+            document.getElementById('editReservationId').value = r.id;
+            document.getElementById('editRoomId').value = r.room_id;
+            document.getElementById('editNumGuests').value = r.num_guests;
+            document.getElementById('editCheckIn').value = (r.check_in_date ?? '').slice(0, 10);
+            document.getElementById('editCheckOut').value = (r.check_out_date ?? '').slice(0, 10);
+            document.getElementById('editReservationWrap').classList.remove('hidden');
+            document.getElementById('editReservationWrap').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        document.getElementById('formEditReservation')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editReservationId').value;
+            const body = {
+                room_id: document.getElementById('editRoomId').value,
+                num_guests: document.getElementById('editNumGuests').value,
+                check_in_date: document.getElementById('editCheckIn').value,
+                check_out_date: document.getElementById('editCheckOut').value,
+            };
+            const res = await api(`/reservations/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+            showMsg(res.data.message, res.ok);
+            if (res.ok) {
+                document.getElementById('editReservationWrap').classList.add('hidden');
+                loadReservationsTable();
+                loadRoomsForDashboard();
+            }
+        });
+
+        document.getElementById('cancelEditReservation')?.addEventListener('click', () => {
+            document.getElementById('editReservationWrap').classList.add('hidden');
+        });
 
         async function cancelReservation(id) {
             const reason = prompt('Motivo de cancelación:');
@@ -686,6 +909,8 @@
                 its.innerHTML = '<option value="">Selecciona un tipo...</option>' + opts;
                 if (types[0]) loadRoomImages(types[0].id);
             }
+
+            return types;
         }
 
         async function loadRoomImages(roomTypeId) {
@@ -699,8 +924,23 @@
         document.getElementById('imageRoomTypeSelect')?.addEventListener('change', (e) => loadRoomImages(e.target.value));
 
         async function loadRooms() {
-            await loadRoomTypesIntoSelects();
-            const res = await api('/rooms');
+            const types = await loadRoomTypesIntoSelects();
+
+            const filterTypeSelect = document.getElementById('roomFilterType');
+            if (filterTypeSelect && filterTypeSelect.options.length <= 1) {
+                filterTypeSelect.innerHTML = '<option value="">Todos los tipos</option>' + types.map(t => `<option value="${t.type}">${t.type}</option>`).join('');
+            }
+
+            const typeFilter = document.getElementById('roomFilterType')?.value ?? '';
+            const floorFilter = document.getElementById('roomFilterFloor')?.value ?? '';
+            const stateFilter = document.getElementById('roomFilterState')?.value ?? '';
+
+            const params = new URLSearchParams();
+            if (typeFilter) params.set('type', typeFilter);
+            if (floorFilter) params.set('floor', floorFilter);
+            if (stateFilter) params.set('state', stateFilter);
+
+            const res = await api('/rooms' + (params.toString() ? '?' + params.toString() : ''));
             const rooms = res?.data?.data ?? [];
             const dotMap = { available: 'bg-emerald-500', reserved: 'bg-amber-500', occupied: 'bg-red-500', 'out of service': 'bg-stone-400', 'on maintenance': 'bg-stone-400' };
 
@@ -715,12 +955,19 @@
                         ${isAdmin && r.state !== 'out of service' ? `<button onclick="markOutOfService(${r.id})" class="text-red-700 text-xs hover:underline">Fuera de servicio</button>` : ''}
                     </td>
                 </tr>
-            `).join('');
+            `).join('') || `<tr><td class="px-5 py-4 text-stone-400 text-sm" colspan="6">Sin resultados</td></tr>`;
 
             const availableRooms = rooms.filter(r => r.state === 'available');
             document.getElementById('reservationRoomSelect').innerHTML = '<option value="">Selecciona...</option>' + rooms.map(r => `<option value="${r.id}">#${r.room_number} - ${r.room_type?.type ?? ''}</option>`).join('');
             document.getElementById('walkinRoomSelect').innerHTML = '<option value="">Selecciona...</option>' + availableRooms.map(r => `<option value="${r.id}">#${r.room_number} - ${r.room_type?.type ?? ''}</option>`).join('');
         }
+
+        document.getElementById('roomFilterType')?.addEventListener('change', loadRooms);
+        document.getElementById('roomFilterFloor')?.addEventListener('input', () => {
+            clearTimeout(window._floorFilterTimeout);
+            window._floorFilterTimeout = setTimeout(loadRooms, 400);
+        });
+        document.getElementById('roomFilterState')?.addEventListener('change', loadRooms);
 
         async function markOutOfService(id) {
             const res = await api(`/rooms/${id}/fuera-de-servicio`, { method: 'PATCH' });
@@ -953,11 +1200,43 @@
                     <td>${r.guest?.name ?? r.user_id}</td>
                     <td class="text-xs text-stone-500">${r.guest?.email ?? '—'}</td>
                     <td class="text-xs text-stone-500">${r.check_in_date} → ${r.check_out_date}</td>
-                    <td class="px-5">
+                    <td class="px-5 space-x-2 whitespace-nowrap">
                         <button onclick="useReservationForService(${r.id})" class="text-red-700 text-xs hover:underline">Usar</button>
+                        <button onclick="viewReservationServices(${r.id})" class="text-stone-600 text-xs hover:underline">Ver servicios</button>
                     </td>
                 </tr>
             `).join('') || `<tr><td class="px-5 py-4 text-stone-400 text-sm" colspan="6">Sin estadías activas</td></tr>`;
+        }
+
+        async function viewReservationServices(reservationId) {
+            const panel = document.getElementById('reservationServicesPanel');
+            const list = document.getElementById('reservationServicesList');
+            panel.classList.remove('hidden');
+            list.innerHTML = '<p class="text-xs text-stone-400">Cargando...</p>';
+            panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            const res = await api(`/reservations/${reservationId}/services`);
+            const services = res?.data?.data ?? [];
+
+            const statusLabels = { solicitado: 'Solicitado', en_proceso: 'En proceso', entregado: 'Entregado' };
+
+            list.innerHTML = services.length ? services.map(s => `
+                <div class="flex items-center justify-between border-b border-stone-200 pb-2 last:border-0">
+                    <div>
+                        <p class="text-stone-800">${s.service?.name ?? ''} · x${s.quantity}</p>
+                        <p class="text-xs text-stone-400">Solicitado: ${(s.requested_date ?? '').slice(0, 10)}</p>
+                    </div>
+                    <select onchange="updateServiceStatus(${s.id}, this.value, ${reservationId})" class="border border-stone-200 rounded-sm text-xs px-2 py-1 bg-white">
+                        ${Object.entries(statusLabels).map(([val, label]) => `<option value="${val}" ${s.status === val ? 'selected' : ''}>${label}</option>`).join('')}
+                    </select>
+                </div>
+            `).join('') : '<p class="text-xs text-stone-400">Esta estadía no tiene servicios asignados</p>';
+        }
+
+        async function updateServiceStatus(reservationServiceId, newStatus, reservationId) {
+            const res = await api(`/reservation-services/${reservationServiceId}/estado`, { method: 'PATCH', body: JSON.stringify({ status: newStatus }) });
+            showMsg(res.data.message, res.ok);
+            if (res.ok) viewReservationServices(reservationId);
         }
 
         function useReservationForService(id) {
@@ -1008,6 +1287,164 @@
             showMsg(res.data.message, res.ok);
             if (res.ok) e.target.reset();
         });
+
+        // ---------- REPORTES ----------
+        function initReportsTab() {
+            const today = new Date().toISOString().slice(0, 10);
+            const startInput = document.getElementById('reportStartDate');
+            const endInput = document.getElementById('reportEndDate');
+
+            if (!startInput.value) {
+                const monthAgo = new Date();
+                monthAgo.setDate(monthAgo.getDate() - 30);
+                startInput.value = monthAgo.toISOString().slice(0, 10);
+            }
+            if (!endInput.value) endInput.value = today;
+
+            loadRoomTypeFilterForReports();
+            loadDailySummaryReport();
+            runReports();
+        }
+
+        async function loadRoomTypeFilterForReports() {
+            const select = document.getElementById('reportRoomTypeFilter');
+            if (select.options.length > 1) return;
+            const res = await api('/obtenerRoomTypes');
+            const types = res?.data?.data ?? [];
+            select.innerHTML = '<option value="">Todos los tipos</option>' + types.map(t => `<option value="${t.id}">${t.type}</option>`).join('');
+        }
+
+        document.querySelectorAll('[data-report-tab]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('[data-report-tab]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                document.querySelectorAll('.report-panel').forEach(p => p.classList.add('hidden'));
+                document.getElementById('report-' + btn.dataset.reportTab).classList.remove('hidden');
+            });
+        });
+
+        function reportParams() {
+            const start = document.getElementById('reportStartDate').value;
+            const end = document.getElementById('reportEndDate').value;
+            const roomTypeId = document.getElementById('reportRoomTypeFilter').value;
+            const params = new URLSearchParams({ start_date: start, end_date: end });
+            if (roomTypeId) params.set('room_type_id', roomTypeId);
+            return params;
+        }
+
+        async function loadDailySummaryReport() {
+            const res = await api('/reports/resumen-dia');
+            const d = res?.data?.data;
+            if (!d) return;
+
+            document.getElementById('dailySummaryWidget').innerHTML = `
+                <div class="border border-stone-200 rounded-md p-3">
+                    <p class="text-xs uppercase tracking-wider text-stone-500">Check-ins hoy</p>
+                    <p class="text-xl font-semibold">${d.checkins}</p>
+                </div>
+                <div class="border border-stone-200 rounded-md p-3">
+                    <p class="text-xs uppercase tracking-wider text-stone-500">Check-outs hoy</p>
+                    <p class="text-xl font-semibold">${d.checkouts}</p>
+                </div>
+                <div class="border border-stone-200 rounded-md p-3">
+                    <p class="text-xs uppercase tracking-wider text-stone-500">Disponibles</p>
+                    <p class="text-xl font-semibold">${d.rooms_available}</p>
+                </div>
+                <div class="border border-stone-200 rounded-md p-3">
+                    <p class="text-xs uppercase tracking-wider text-stone-500">Total de habitaciones</p>
+                    <p class="text-xl font-semibold">${d.rooms_total}</p>
+                </div>
+            `;
+        }
+
+        async function runReports() {
+            await Promise.all([
+                loadOccupancyReport(),
+                loadRevenueReport(),
+                loadMostRequestedReport(),
+                loadFrequentGuestsReport(),
+            ]);
+        }
+
+        async function loadOccupancyReport() {
+            const res = await api('/reports/ocupacion?' + reportParams().toString());
+            if (!res.ok) { showMsg(res.data.message, false); return; }
+            const days = res.data.data.days ?? [];
+            document.getElementById('occupancyAverage').textContent = res.data.data.average_occupancy_percent + '%';
+            document.getElementById('occupancyTable').innerHTML = days.map(d => `
+                <tr class="border-b border-stone-100 last:border-0">
+                    <td class="py-2">${d.date}</td>
+                    <td>${d.occupied}</td>
+                    <td>${d.total_rooms}</td>
+                    <td>${d.occupancy_percent}%</td>
+                </tr>
+            `).join('') || `<tr><td class="py-4 text-stone-400" colspan="4">Sin datos</td></tr>`;
+        }
+
+        async function loadRevenueReport() {
+            const res = await api('/reports/ingresos?' + reportParams().toString());
+            if (!res.ok) { showMsg(res.data.message, false); return; }
+            const { invoices, summary } = res.data.data;
+
+            document.getElementById('revenueRoomTotal').textContent = '$' + summary.total_room_revenue.toFixed(2);
+            document.getElementById('revenueServicesTotal').textContent = '$' + summary.total_services_revenue.toFixed(2);
+            document.getElementById('revenueGrandTotal').textContent = '$' + summary.total_revenue.toFixed(2);
+
+            document.getElementById('revenueTable').innerHTML = (invoices ?? []).map(inv => `
+                <tr class="border-b border-stone-100 last:border-0">
+                    <td class="py-2 font-mono text-xs text-stone-500">#${inv.id}</td>
+                    <td>${inv.reservation?.guest?.name ?? ''}</td>
+                    <td>Hab. ${inv.reservation?.room?.room_number ?? ''}</td>
+                    <td>$${parseFloat(inv.total_cost).toFixed(2)}</td>
+                    <td class="text-xs text-stone-500">${(inv.issued_at ?? '').slice(0, 10)}</td>
+                </tr>
+            `).join('') || `<tr><td class="py-4 text-stone-400" colspan="5">Sin facturas en este período</td></tr>`;
+        }
+
+        async function loadMostRequestedReport() {
+            const res = await api('/reports/habitaciones-mas-solicitadas?' + reportParams().toString());
+            if (!res.ok) { showMsg(res.data.message, false); return; }
+            document.getElementById('mostRequestedTable').innerHTML = (res.data.data ?? []).map(r => `
+                <tr class="border-b border-stone-100 last:border-0">
+                    <td class="py-2">${r.type}</td>
+                    <td>${r.total_reservations}</td>
+                </tr>
+            `).join('') || `<tr><td class="py-4 text-stone-400" colspan="2">Sin datos</td></tr>`;
+        }
+
+        async function loadFrequentGuestsReport() {
+            const res = await api('/reports/huespedes-frecuentes?' + reportParams().toString());
+            if (!res.ok) { showMsg(res.data.message, false); return; }
+            document.getElementById('frequentGuestsTable').innerHTML = (res.data.data ?? []).map(g => `
+                <tr class="border-b border-stone-100 last:border-0">
+                    <td class="py-2">${g.name}</td>
+                    <td>${g.email}</td>
+                    <td>${g.total_stays}</td>
+                </tr>
+            `).join('') || `<tr><td class="py-4 text-stone-400" colspan="3">Sin datos</td></tr>`;
+        }
+
+        function exportReport(format, type) {
+            const params = reportParams();
+            params.set('type', type);
+            const url = `/api/reports/export/${format}?${params.toString()}`;
+            // Descarga autenticada: fetch + blob, ya que un <a href> normal no manda el Bearer token.
+            fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
+                .then(async res => {
+                    if (!res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        showMsg(data.message || 'No se pudo exportar el reporte', false);
+                        return;
+                    }
+                    const blob = await res.blob();
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `reporte-${type}.${format === 'pdf' ? 'pdf' : 'csv'}`;
+                    link.click();
+                    URL.revokeObjectURL(link.href);
+                })
+                .catch(() => showMsg('No se pudo exportar el reporte', false));
+        }
 
         // ---------- INIT ----------
         loadDashboard();
